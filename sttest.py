@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 from analysis.accessors import DType
-from analysis.data import ewm_plot
+from analysis.data import EWM_COLORS, _ewm_data, _ewm_draw, ewm_plot
 
 # Functions
 
@@ -15,13 +15,16 @@ def process_csv(csv, dateformat="ISO"):
     return df.astype({"volume": DType.U16})
 
 
-def filter_and_plot_data(start, end):
+def filter_and_plot_data(df, start, end, windows):
     # provided dates from widget are datetime.date instances
     # pandas only plays ball with datetime.datetime instances or strings
     mask = (df.date >= start.isoformat()) & (df.date <= end.isoformat())
     selected = df.loc[mask]
 
-    chart = ewm_plot(selected, windows=(10, 30, 90))
+    daily = df.groupby("date", as_index=False)["volume"].sum()
+    data = _ewm_data(daily, windows, "volume")
+    chart = _ewm_draw(data.loc[data.date.isin(selected.date)], "volume")
+
     chart.width = 800
     chart.height = 500
     return chart
@@ -41,7 +44,7 @@ st.title("Toms Volume analyser")
 help = st.container()
 data_sidebar = st.sidebar.container()
 data_info = st.expander("Data statistics")
-date_selectors = st.container()
+display_selectors = st.container()
 chart_display = st.container()
 
 with help:
@@ -87,24 +90,19 @@ with data_info:
 
 
 # date filters
-with date_selectors:
-    left, right = st.columns(2)
-    selected = df.copy()
-    start_date = left.date_input("Start Date", df.date.min(), key="start_date")
-    left.button(
-        "Reset",
-        key="reset_start",
-        on_click=reset_date,
-        args=["start_date", df.date.min()],
+
+
+with display_selectors:
+    date_min = df.date.min().date()
+    date_max = df.date.max().date()
+    dates = st.slider(
+        "Choose start and end dates",
+        date_min,
+        date_max,
+        (date_min, date_max),
     )
-    end_date = right.date_input("End Date", df.date.max(), key="end_date")
-    right.button(
-        "Reset",
-        key="reset_end",
-        on_click=reset_date,
-        args=["end_date", df.date.max()],
-    )
+    # windows = st.selectbox("Average Windows", [(10, 30, 90), (7, 28, 112)])
 
 with chart_display:
-    chart = filter_and_plot_data(start_date, end_date)
+    chart = filter_and_plot_data(df, dates[0], dates[1], windows=(10, 30, 90))
     st.altair_chart(chart)

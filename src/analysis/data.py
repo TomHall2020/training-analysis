@@ -32,14 +32,13 @@ def _ewm_data(df, windows, metric, start_value=None):
 
 
 def _ewm_draw(data, metric, custom_color_scale=False):
-    view = alt.selection_interval(encodings=["x"], bind="scales")
+    # view = alt.selection_interval(encodings=["x"], bind="scales")
     base = (
-        alt.Chart(data, title=f"Average {metric}", width=500)
-        .encode(
+        alt.Chart(data, title=f"Average {metric}", width=500).encode(
             x=alt.X("yearmonthdate(date):T", axis=alt.Axis(grid=False), title="Date"),
             y=alt.Y("value:Q", title=metric),
         )
-        .add_params(view)
+        # .add_params(view)
     )
 
     volumes = (
