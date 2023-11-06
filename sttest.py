@@ -10,7 +10,7 @@ from src.analysis.data import ewm_plot
 @st.cache_data
 def process_csv(csv):
     df = pd.read_csv(csv, header=0, names=["date", "volume"])
-    df["date"] = pd.to_datetime(df["date"], format="%d/%m/%Y")
+    df["date"] = pd.to_datetime(df["date"])
     return df.astype({"volume": DType.U16})
 
 
