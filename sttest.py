@@ -1,7 +1,8 @@
 import pandas as pd
 import streamlit as st
+
 from analysis.accessors import DType
-from analysis.data import EWM_COLORS, _ewm_data, _ewm_draw, ewm_plot
+from analysis.data import _ewm_data, _ewm_draw
 
 # Functions
 
