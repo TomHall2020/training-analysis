@@ -1,8 +1,7 @@
 import pandas as pd
 import streamlit as st
-
-from src.analysis.accessors import DType
-from src.analysis.data import ewm_plot
+from analysis.accessors import DType
+from analysis.data import ewm_plot
 
 # Functions
 
