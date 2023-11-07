@@ -16,6 +16,11 @@ def process_csv(csv, dateformat="ISO"):
     return df.astype({"volume": DType.U16})
 
 
+@st.cache_data
+def serialize_df(df):
+    return df.to_csv()
+
+
 def filter_and_plot_data(df, start, end, windows):
     # provided dates from widget are datetime.date instances
     # pandas only plays ball with datetime.datetime instances or strings
@@ -28,7 +33,7 @@ def filter_and_plot_data(df, start, end, windows):
 
     chart.width = 800
     chart.height = 500
-    return chart
+    return chart, data
 
 
 def reset_date(name, value):
@@ -42,11 +47,29 @@ st.set_page_config(
     layout="wide",
 )
 st.title("Toms Volume analyser")
+auth = st.empty()
 help = st.container()
 data_sidebar = st.sidebar.container()
 data_info = st.expander("Data statistics")
 display_selectors = st.container()
 chart_display = st.container()
+
+# authentication
+# auth.text_input("Activation Code", key="auth_code")
+
+# if "auth_code" not in st.session_state:
+#     st.session_state["auth_code"] = "1"
+
+# with auth:
+#     # code = st.text_input("Activation Code", key="auth_code")
+#     if st.session_state.auth_code == "":
+#         st.stop()
+#     if st.session_state.auth_code != st.secrets["auth_code"]:
+#         st.error("Access Denied")
+#         del st.session_state.auth_code
+#         st.rerun()
+#     st.success("Access Granted")
+
 
 with help:
     st.markdown(
@@ -86,8 +109,8 @@ else:
 # with st.expander("Data statistics"):
 with data_info:
     left, right = st.columns(2)
-    left.dataframe(df["volume"].describe())
-    right.dataframe(df.head())
+    left.table(df["volume"].describe())
+    # right.table(df.head())
 
 
 # date filters
@@ -105,5 +128,12 @@ with display_selectors:
     # windows = st.selectbox("Average Windows", [(10, 30, 90), (7, 28, 112)])
 
 with chart_display:
-    chart = filter_and_plot_data(df, dates[0], dates[1], windows=(10, 30, 90))
+    chart, data = filter_and_plot_data(df, dates[0], dates[1], windows=(10, 30, 90))
     st.altair_chart(chart)
+    st.dataframe(data)
+    data_download = st.download_button(
+        "Download charted data",
+        serialize_df(data),
+        file_name="volumes.csv",
+        mime="text/csv",
+    )
