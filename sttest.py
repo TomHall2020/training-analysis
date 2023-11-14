@@ -1,3 +1,4 @@
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -21,7 +22,7 @@ def serialize_df(df):
     return df.to_csv()
 
 
-def filter_and_plot_data(df, start, end, windows):
+def filter_and_plot_data(df, start, end, windows, show_daily=True):
     # provided dates from widget are datetime.date instances
     # pandas only plays ball with datetime.datetime instances or strings
     mask = (df.date >= start.isoformat()) & (df.date <= end.isoformat())
@@ -29,15 +30,21 @@ def filter_and_plot_data(df, start, end, windows):
 
     daily = df.groupby("date", as_index=False)["volume"].sum()
     data = _ewm_data(daily, windows, "volume")
-    chart = _ewm_draw(data.loc[data.date.isin(selected.date)], "volume")
-
-    chart.width = 800
+    data = data.loc[data.date.isin(selected.date)]
+    chart = _ewm_draw(data, "volume", show_daily=show_daily)
+    data = data.pivot_table(values="value", index="date", columns="window").reindex()
     chart.height = 500
-    return chart, data
+    return (chart, data)
 
 
 def reset_date(name, value):
     st.session_state[name] = value
+
+
+def compare_metric(compare, window, label):
+    before = compare.at[0, str(window)]
+    after = compare.at[1, str(window)]
+    return st.metric(f"{label} Volume ({window} days)", after, after - before)
 
 
 # App
@@ -106,17 +113,14 @@ if csv:
 else:
     st.session_state["df"] = df = process_csv("data/Training_Vol18-19.csv", datefmt)
 
-# with st.expander("Data statistics"):
 with data_info:
     left, right = st.columns(2)
     left.table(df["volume"].describe())
     # right.table(df.head())
 
 
-# date filters
-
-
 with display_selectors:
+    st.header("Chart Controls")
     date_min = df.date.min().date()
     date_max = df.date.max().date()
     dates = st.slider(
@@ -125,11 +129,26 @@ with display_selectors:
         date_max,
         (date_min, date_max),
     )
+    daily_toggle = st.checkbox("Daily Volumes")
     # windows = st.selectbox("Average Windows", [(10, 30, 90), (7, 28, 112)])
 
 with chart_display:
-    chart, data = filter_and_plot_data(df, dates[0], dates[1], windows=(10, 30, 90))
-    st.altair_chart(chart)
+    st.header("EWM Average Volume Data")
+    chart, data = filter_and_plot_data(
+        df, dates[0], dates[1], windows=(10, 30, 90), show_daily=daily_toggle
+    )
+    compare = data.take([0, -1]).reset_index()
+
+    _cols = st.columns(3)
+    with _cols[0]:
+        compare_metric(compare, 10, "Acute")
+    with _cols[1]:
+        compare_metric(compare, 30, "Chronic")
+    with _cols[2]:
+        compare_metric(compare, 90, "Baseline")
+
+    st.altair_chart(chart, use_container_width=True)
+
     st.dataframe(data)
     data_download = st.download_button(
         "Download charted data",

@@ -31,7 +31,7 @@ def _ewm_data(df, windows, metric, start_value=None):
     )
 
 
-def _ewm_draw(data, metric, custom_color_scale=False):
+def _ewm_draw(data, metric, custom_color_scale=False, show_daily=True):
     # view = alt.selection_interval(encodings=["x"], bind="scales")
     base = (
         alt.Chart(data, title=f"Average {metric}", width=500).encode(
@@ -57,12 +57,15 @@ def _ewm_draw(data, metric, custom_color_scale=False):
         base.transform_filter(f"datum.window != '{metric}'")
         .mark_line()
         .encode(
-            color=alt.Color("window:N", scale=scale),
+            color=alt.Color("window:N", scale=scale).legend(orient="top"),
             tooltip=["date:T", "window:O", "value:Q"],
         )
     )
-    chart = volumes + averages
-    chart.usermeta = dict(averages=averages, volumes=volumes)
+    if show_daily:
+        chart = volumes + averages
+    else:
+        chart = averages
+    # chart.usermeta = dict(averages=averages, volumes=volumes)
     return chart
 
 

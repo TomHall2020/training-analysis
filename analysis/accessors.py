@@ -56,7 +56,7 @@ class VolumeAccessor:
 
     @staticmethod
     def ewm(series, span):
-        return series.ewm(span=span, adjust=False).mean().rename(span)
+        return series.ewm(span=span, adjust=False).mean().rename(str(span))
 
     def ewm_multi(self, series, spans):
         return pd.concat([self.ewm(series, n) for n in spans], axis=1)
